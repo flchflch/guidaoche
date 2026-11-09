@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ffffff">
+    <title>轨道作业车定期保养记录表</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-muted: #64748b;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0; padding: 16px; line-height: 1.6;
+        }
+        #capture-area {
+            max-width: 800px; margin: 0 auto; background: var(--card);
+            padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid var(--border); padding-bottom: 16px; }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--text); }
+        .meta { color: var(--text-muted); font-size: 0.9rem; margin-top: 6px; }
+        .vehicle-input {
+            margin-top: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            font-size: 0.95rem;
+        }
+        .vehicle-input label { font-weight: 500; color: var(--text); white-space: nowrap; }
+        .vehicle-input input {
+            width: 200px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px;
+            font-size: 0.95rem; outline: none; text-align: center; transition: border-color 0.2s;
+        }
+        .vehicle-input input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+        
+        .item-card {
+            border: 1px solid var(--border); border-radius: 8px; padding: 16px;
+            margin-bottom: 16px; background: #fafbfc; transition: all 0.2s;
+        }
+        .item-card.active { border-color: var(--primary); background: #eff6ff; }
+        .item-title { font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background: #e2e8f0; color: #475569; }
+        
+        .radio-group { display: flex; gap: 12px; margin-bottom: 8px; }
+        .radio-label {
+            flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+            transition: all 0.2s; font-size: 0.95rem;
+        }
+        .radio-label:has(input:checked) { border-color: var(--primary); background: #eff6ff; color: var(--primary); font-weight: 500; }
+        .radio-label:has(input[value="no"]:checked) { border-color: var(--danger); background: #fef2f2; color: var(--danger); }
+        
+        .issue-box {
+            margin-top: 10px; padding: 12px; background: #fff1f2; border-left: 4px solid var(--danger);
+            border-radius: 6px; display: none; animation: fadeIn 0.2s ease;
+        }
+        .issue-box label { display: block; margin-bottom: 6px; font-size: 0.9rem; color: #991b1b; }
+        .issue-box textarea {
+            width: 100%; min-height: 70px; padding: 10px; border: 1px solid #fecaca;
+            border-radius: 6px; font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none;
+        }
+        .issue-box textarea:focus { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(239,68,68,0.2); }
+
+        .signature-section { margin-top: 28px; padding-top: 20px; border-top: 2px dashed var(--border); }
+        .signature-section h3 { margin: 0 0 12px; font-size: 1.1rem; }
+        .sig-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+        .sig-pad-wrap { background: #f1f5f9; padding: 10px; border-radius: 8px; }
+        .sig-pad-wrap label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.9rem; }
+        canvas.sign-area {
+            width: 100%; height: 140px; background: #fff; border: 2px dashed #cbd5e1;
+            border-radius: 6px; touch-action: none; cursor: crosshair;
+        }
+        .btn-clear {
+            margin-top: 6px; padding: 6px 12px; font-size: 0.8rem; background: #e2e8f0;
+            border: none; border-radius: 4px; cursor: pointer; color: #475569;
+        }
+        .btn-clear:hover { background: #cbd5e1; }
+
+        .action-bar { position: sticky; bottom: 16px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; z-index: 10; margin-top: 24px; }
+        #save-btn {
+            width: 100%; max-width: 320px; padding: 14px; font-size: 1rem; font-weight: 600;
+            color: #fff; background: var(--primary); border: none; border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(37,99,235,0.3); cursor: pointer; transition: transform 0.1s;
+        }
+        #save-btn:active { transform: scale(0.98); }
+        #save-btn:disabled { background: #94a3b8; cursor: wait; }
+        #msg { margin-top: 8px; font-size: 0.85rem; color: var(--text-muted); min-height: 20px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            #capture-area { padding: 16px; }
+            h1 { font-size: 1.3rem; }
+            .radio-label { padding: 10px; font-size: 0.9rem; }
+            .vehicle-input input { width: 160px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="capture-area">
+    <header>
+        <h1>🛤️ 轨道作业车定期保养记录表</h1>
+        <div class="meta" id="date-display">生成时间：--</div>
+        <!-- 车号输入框 -->
+        <div class="vehicle-input" style="margin-top: 10px;">
+            <label for="vehicle">车号：</label>
+            <input type="text" id="vehicle" placeholder="GCD-1000 14027" autocomplete="off">
+        </div>
+    </header>
+
+    <main id="items-container">
+        <!-- 保养项目将由 JS 自动渲染 -->
+    </main>
+
+    <section class="signature-section">
+        <h3>📝 项目完成签字确认</h3>
+        <div class="sig-grid">
+            <div class="sig-pad-wrap">
+                <label>保养人 1</label>
+                <canvas class="sign-area" id="sig-1"></canvas>
+                <button class="btn-clear" onclick="clearSig('sig-1')">✕ 清除重签</button>
+            </div>
+            <div class="sig-pad-wrap">
+                <label>保养人 2</label>
+                <canvas class="sign-area" id="sig-2"></canvas>
+                <button class="btn-clear" onclick="clearSig('sig-2')">✕ 清除重签</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="action-bar">
+        <button id="save-btn">📸 一键保存截图</button>
+        <div id="msg"></div>
+    </div>
+</div>
+
+<script>
+    // ========== 1. 初始化日期 ==========
+    const now = new Date();
+    const fullDateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    document.getElementById('date-display').textContent = `生成时间：${fullDateStr}`;
+
+    // ========== 2. 保养项目配置区 ==========
+    const maintenanceItems = [
+        { id: 1, name: '发动机组-清洁空气滤清器、机油滤清器、燃油滤清器、空压机滤清器，并按规定更换' },
+        { id: 2, name: '发动机组-检查发动机的润滑油，必要时添加或更换' },
+        { id: 3, name: '发动机组-检查各种皮带的磨损情况，必要时调整或更换' },
+        { id: 4, name: '发动机组-检查发动机的悬挂支承及安装紧固螺栓' },
+        { id: 5, name: '发动机组-检查水散热器的散热效能，必要时清洗冷却系' },
+        { id: 6, name: '发动机组-检查蓄电池电压，清洁极柱。电解液高度是否符合要求' },
+        { id: 7, name: '电气系统-发动机组-检查各电气线路无破损、老化，电气箱内接线无松动，开关位置正确，工作正常' },
+        { id: 8, name: '电气系统-检查和调整各机构的行程开关至合适位置' },
+        { id: 9, name: '电气系统-检查紧固GYK速度、轴温传感器' },
+        { id: 10, name: '电气系统-检查和调整各机构的行程开关至合适位置' },
+        { id: 11, name: '走行传动系统-检查变速箱、车轴齿轮箱的润滑油；必要时添加或更换' },
+        { id: 12, name: '走行传动系统-检查变速箱、固定轴、车轴齿轮箱的悬挂支承及安装紧固螺栓' },
+        { id: 13, name: '走行传动系统-检查传动轴的万向节、十字轴及花键磨损情况' },
+        { id: 14, name: '走行传动系统-检查油压减振器的安装紧固及工作情况' },
+        { id: 15, name: '走行传动系统-检查车轴齿轮箱悬挂装置和传动轴角度，必要时予以调整' },
+        { id: 16, name: '车钩-检查车钩的磨损情况及车钩与车架连接的紧固螺栓' },
+        { id: 17, name: '车钩-清洁车钩表面灰尘油污，摩擦部位涂抹润滑脂' },
+        { id: 18, name: '车钩-车钩在闭锁位置时，钩锁铁防跳性能良好' },
+        { id: 19, name: '车钩-目视检查确认钩舌、钩体、缓冲器箱体、从板、从板座、冲击座、钩尾框、托架等无裂纹' },
+        { id: 20, name: '车钩-目视检查缓冲器与从板及从板座间无贯通间隙' },
+        { id: 21, name: '车钩-抽检法兰盘内锁螺母情况，必要时进行更换' },
+        { id: 22, name: '空调系统-无网区登顶检查空调固定状态（确无条件的使用视频设备检查）' },
+        { id: 23, name: '车体及其他-检查车钩高度，排障器高度及更换排障器胶皮' },
+        { id: 24, name: '车体及其他-检查车棚是否有锈蚀，油漆是否有脱落，必要时补漆' },
+        { id: 25, name: '车体及其他-车架各梁及盖板轻微腐蚀时，应进行除锈、涂防锈漆处理；腐蚀、变形严重及出现裂纹时，应及时修理' },
+        { id: 26, name: '车体及其他-司机室、顶棚各处无漏雨现象' },
+        { id: 27, name: '车体及其他-司机室各门窗应作用良好，开启灵活、关闭严密，玻璃无裂纹。门窗组件变形、损坏时予以修复或更换' }
+    ];
+
+    // ========== 3. 渲染项目卡片 ==========
+    const container = document.getElementById('items-container');
+    maintenanceItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+            <div class="item-title"><span class="badge">${item.id}</span> ${item.name}</div>
+            <div class="radio-group">
+                <label class="radio-label"><input type="radio" name="q${item.id}" value="yes" checked> ✅ 合格</label>
+                <label class="radio-label"><input type="radio" name="q${item.id}" value="no"> ❌ 异常</label>
+            </div>
+            <div class="issue-box" id="issue-${item.id}">
+                <label for="desc-${item.id}">⚠️ 问题描述（必填）：</label>
+                <textarea id="desc-${item.id}" placeholder="请详细说明故障现象、位置及初步处理建议..."></textarea>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+
+    // ========== 4. 对错交互逻辑 ==========
+    document.querySelectorAll('.radio-group input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const qId = this.name.replace('q', '');
+            const box = document.getElementById(`issue-${qId}`);
+            const card = this.closest('.item-card');
+            
+            if (this.value === 'no') {
+                box.style.display = 'block';
+                card.classList.add('active');
+                setTimeout(() => document.getElementById(`desc-${qId}`).focus(), 100);
+            } else {
+                box.style.display = 'none';
+                card.classList.remove('active');
+            }
+        });
+    });
+
+    // ========== 5. 签名画板逻辑（支持鼠标+触屏） ==========
+    class SigPad {
+        constructor(canvasId) {
+            this.cvs = document.getElementById(canvasId);
+            this.ctx = this.cvs.getContext('2d');
+            this.drawing = false;
+            this.hasSign = false;
+            this.resize();
+            window.addEventListener('resize', () => this.resize());
+            
+            ['mousedown','touchstart'].forEach(e => this.cvs.addEventListener(e, this.start.bind(this)));
+            ['mousemove','touchmove'].forEach(e => this.cvs.addEventListener(e, this.move.bind(this)));
+            ['mouseup','touchend'].forEach(e => this.cvs.addEventListener(e, this.end.bind(this)));
+            this.cvs.addEventListener('mouseleave', this.end.bind(this));
+        }
+        resize() {
+            const r = this.cvs.getBoundingClientRect();
+            this.cvs.width = r.width; 
+            this.cvs.height = r.height;
+            this.ctx.strokeStyle = '#000'; 
+            this.ctx.lineWidth = 2.5;
+            this.ctx.lineCap = 'round'; 
+            this.ctx.lineJoin = 'round';
+        }
+        getPos(e) {
+            const r = this.cvs.getBoundingClientRect();
+            const t = e.touches ? e.touches[0] : e;
+            return { x: t.clientX - r.left, y: t.clientY - r.top };
+        }
+        start(e) { 
+            e.preventDefault(); 
+            this.drawing = true; 
+            this.hasSign = true;
+            const p = this.getPos(e); 
+            this.ctx.beginPath(); 
+            this.ctx.moveTo(p.x, p.y); 
+        }
+        move(e) {
+            if(!this.drawing) return; 
+            e.preventDefault();
+            const p = this.getPos(e); 
+            this.ctx.lineTo(p.x, p.y); 
+            this.ctx.stroke();
+        }
+        end() { this.drawing = false; }
+        clear() {
+            this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
+            this.hasSign = false;
+        }
+    }
+    const sigPad1 = new SigPad('sig-1');
+    const sigPad2 = new SigPad('sig-2');
+
+    // 6. 全局清除函数
+    window.clearSig = (id) => {
+        if (id === 'sig-1') sigPad1.clear();
+        if (id === 'sig-2') sigPad2.clear();
+    };
+
+    // ========== 7. 多终端兼容的完整截图功能 ==========
+    document.getElementById('save-btn').addEventListener('click', function() {
+        const btn = this; 
+        const msg = document.getElementById('msg');
+        btn.disabled = true; 
+        btn.textContent = '⏳ 正在生成完整截图...';
+        msg.textContent = '';
+
+        try {
+            // 收集数据
+            const vehicle = document.getElementById('vehicle').value.trim() || '未填写';
+            
+            // 收集所有项目状态
+            const items = [];
+            maintenanceItems.forEach(item => {
+                const yesRadio = document.querySelector(`input[name="q${item.id}"][value="yes"]`);
+                const isYes = yesRadio ? yesRadio.checked : true;
+                const desc = document.getElementById(`desc-${item.id}`).value.trim();
+                
+                items.push({
+                    id: item.id,
+                    name: item.name,
+                    status: isYes ? '合格' : '异常',
+                    desc: desc
+                });
+            });
+
+            // 创建Canvas并绘制完整报表
+            const canvas = generateCompleteReport({
+                vehicle: vehicle,
+                items: items,
+                dateStr: fullDateStr,
+                hasSig1: sigPad1.hasSign,
+                hasSig2: sigPad2.hasSign,
+                sig1Canvas: sigPad1.cvs,
+                sig2Canvas: sigPad2.cvs
+            });
+            
+            // 导出图片 - 兼容所有平台
+            const link = document.createElement('a');
+            const safeVehicle = vehicle.replace(/[\\/:*?"<>|]/g, '_');
+            const fileDateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+            
+            // 移动端兼容处理
+            const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // 移动端使用Blob方式
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    link.href = url;
+                    link.download = `轨道作业车保养记录_${safeVehicle}_${fileDateStr}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    msg.textContent = '✅ 完整截图已保存！';
+                }, 'image/png');
+            } else {
+                // 桌面端直接下载
+                link.download = `轨道作业车保养记录_${safeVehicle}_${fileDateStr}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                msg.textContent = '✅ 完整截图已保存！';
+            }
+        } catch (err) {
+            console.error('截图错误:', err);
+            msg.textContent = '❌ 截图失败，请重试';
+        } finally {
+            setTimeout(() => {
+                btn.disabled = false; 
+                btn.textContent = '📸 一键保存截图';
+            }, 800);
+        }
+    });
+
+    // ========== 生成完整报表Canvas（确保无重叠） ==========
+    function generateCompleteReport(data) {
+        const { vehicle, items, dateStr, hasSig1, hasSig2, sig1Canvas, sig2Canvas } = data;
+        
+        // 页面宽度（A4比例）
+        const pageWidth = 794;
+        const leftMargin = 40;
+        const rightMargin = 40;
+        const contentWidth = pageWidth - leftMargin - rightMargin;
+        
+        // ===== 预计算所有内容高度（确保不重叠） =====
+        // 1. 头部区域高度
+        const headerHeight = 90;
+        
+        // 2. 项目区域高度（每项独立计算）
+        let itemsAreaHeight = 0;
+        const itemLayouts = []; // 保存每项的布局信息
+        
+        // 为每行配置固定列：编号列(30px) + 名称列(flex) + 状态列(80px)
+        const numColWidth = 30;
+        const statusColWidth = 80;
+        const nameColWidth = contentWidth - numColWidth - statusColWidth;
+        const nameStartX = leftMargin + numColWidth; // 名称起始X
+        const statusStartX = leftMargin + numColWidth + nameColWidth; // 状态起始X
+        
+        items.forEach(item => {
+            // 计算项目名称需要的行数
+            const chars = item.name.split('');
+            let lines = [];
+            let currentLine = '';
+            
+            // 估算字符宽度：中文12px，英文7px
+            const charWidths = chars.map(c => c.charCodeAt(0) > 255 ? 12 : 7);
+            let currentWidth = 0;
+            
+            chars.forEach((char, idx) => {
+                const w = charWidths[idx];
+                if (currentWidth + w > nameColWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = char;
+                    currentWidth = w;
+                } else {
+                    currentLine += char;
+                    currentWidth += w;
+                }
+            });
+            if (currentLine) lines.push(currentLine);
+            
+            // 基础高度：名称行数 * 18px + 状态行20px + 间距10px
+            let itemHeight = lines.length * 18 + 20 + 10;
+            
+            // 如果异常且有描述，额外增加描述区域
+            if (item.status === '异常' && item.desc) {
+                // 估算描述行数
+                const descChars = item.desc.split('');
+                let descLines = 1;
+                let descWidth = 0;
+                descChars.forEach(c => {
+                    const w = c.charCodeAt(0) > 255 ? 11 : 6.5;
+                    if (descWidth + w > nameColWidth) {
+                        descLines++;
+                        descWidth = w;
+                    } else {
+                        descWidth += w;
+                    }
+                });
+                itemHeight += descLines * 16 + 5;
+            }
+            
+            itemLayouts.push({
+                lines: lines,
+                descLines: item.status === '异常' ? Math.ceil((item.desc || '').length / 20) : 0,
+                height: itemHeight
+            });
+            
+            itemsAreaHeight += itemHeight;
+        });
+        
+        // 3. 签名区域高度
+        const sigAreaHeight = 220;
+        
+        // 4. 总高度
+        const pageHeight = headerHeight + itemsAreaHeight + sigAreaHeight + 60;
+        
+        // ===== 创建Canvas =====
+        const canvas = document.createElement('canvas');
+        canvas.width = pageWidth;
+        canvas.height = pageHeight;
+        const ctx = canvas.getContext('2d');
+        
+        // 白色背景
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pageWidth, pageHeight);
+        
+        // ===== 绘制头部 =====
+        let y = 30;
+        
+        // 标题
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 22px "Microsoft YaHei", "PingFang SC", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🛤️ 轨道作业车定期保养记录表', pageWidth / 2, y);
+        
+        y += 26;
+        ctx.fillStyle = '#64748b';
+        ctx.font = '12px "Microsoft YaHei", "PingFang SC", sans-serif';
+        ctx.fillText(`生成时间：${dateStr}`, pageWidth / 2, y);
+        
+        y += 22;
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 14px "Microsoft YaHei", "PingFang SC", sans-serif';
+        ctx.fillText(`车号：${vehicle}`, pageWidth / 2, y);
+        
+        // 分隔线
+        y += 15;
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(30, y);
+        ctx.lineTo(pageWidth - 30, y);
+        ctx.stroke();
+        
+        y += 15;
+        
+        // ===== 绘制项目列表（分列布局，确保不重叠） =====
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const layout = itemLayouts[i];
+            
+            // 绘制编号圆
+            ctx.fillStyle = '#2563eb';
+            ctx.beginPath();
+            ctx.arc(leftMargin + 12, y + 12, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px "Microsoft YaHei", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(item.id, leftMargin + 12, y + 16);
+            
+            // 绘制项目名称（左侧）
+            ctx.textAlign = 'left';
+            ctx.font = '12px "Microsoft YaHei", "PingFang SC", sans-serif';
+            ctx.fillStyle = '#1e293b';
+            
+            layout.lines.forEach((line, idx) => {
+                ctx.fillText(line, nameStartX, y + 14 + idx * 18);
+            });
+            
+            // 绘制状态（右侧，独立列）
+            ctx.font = 'bold 12px "Microsoft YaHei", sans-serif';
+            ctx.textAlign = 'right';
+            
+            if (item.status === '合格') {
+                ctx.fillStyle = '#16a34a';
+                ctx.fillText('✅ 合格', statusStartX + statusColWidth, y + 14);
+            } else {
+                ctx.fillStyle = '#dc2626';
+                ctx.fillText('❌ 异常', statusStartX + statusColWidth, y + 14);
+            }
+            
+            // 绘制异常描述（在下一行，独立区域）
+            if (item.status === '异常' && item.desc) {
+                ctx.font = '10px "Microsoft YaHei", sans-serif';
+                ctx.fillStyle = '#991b1b';
+                ctx.textAlign = 'left';
+                
+                // 描述换行绘制
+                const descY = y + layout.lines.length * 18 + 14;
+                ctx.fillText(`问题：${item.desc}`, nameStartX, descY);
+            }
+            
+            // 分隔线（在本项结尾）
+            y += layout.height - 8;
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(leftMargin, y);
+            ctx.lineTo(pageWidth - rightMargin, y);
+            ctx.stroke();
+            
+            y += 12;
+        }
+        
+        // ===== 绘制签名区域（确保显示） =====
+        y += 15;
+        
+        // 签名标题
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 16px "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('📝 项目完成签字确认', pageWidth / 2, y);
+        
+        y += 30;
+        
+        // 两个签名框
+        const sigBoxWidth = (contentWidth - 30) / 2;
+        const sigLeft1 = leftMargin;
+        const sigLeft2 = leftMargin + sigBoxWidth + 30;
+        const sigBoxHeight = 110;
+        
+        // 标题文字
+        ctx.fillStyle = '#64748b';
+        ctx.font = '12px "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('保养人 1：', sigLeft1, y - 8);
+        ctx.fillText('保养人 2：', sigLeft2, y - 8);
+        
+        // 绘制签名框
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(sigLeft1, y, sigBoxWidth, sigBoxHeight);
+        ctx.strokeRect(sigLeft2, y, sigBoxWidth, sigBoxHeight);
+        
+        // 如果已有签名，绘制签名内容
+        if (hasSig1 && sig1Canvas && sig1Canvas.width > 0) {
+            try {
+                const scaleX = (sigBoxWidth - 30) / sig1Canvas.width;
+                const scaleY = (sigBoxHeight - 20) / sig1Canvas.height;
+                const scale = Math.min(scaleX, scaleY);
+                const drawWidth = sig1Canvas.width * scale;
+                const drawHeight = sig1Canvas.height * scale;
+                const drawX = sigLeft1 + (sigBoxWidth - drawWidth) / 2;
+                const drawY = y + (sigBoxHeight - drawHeight) / 2;
+                ctx.drawImage(sig1Canvas, drawX, drawY, drawWidth, drawHeight);
+            } catch (e) {}
+        }
+        
+        if (hasSig2 && sig2Canvas && sig2Canvas.width > 0) {
+            try {
+                const scaleX = (sigBoxWidth - 30) / sig2Canvas.width;
+                const scaleY = (sigBoxHeight - 20) / sig2Canvas.height;
+                const scale = Math.min(scaleX, scaleY);
+                const drawWidth = sig2Canvas.width * scale;
+                const drawHeight = sig2Canvas.height * scale;
+                const drawX = sigLeft2 + (sigBoxWidth - drawWidth) / 2;
+                const drawY = y + (sigBoxHeight - drawHeight) / 2;
+                ctx.drawImage(sig2Canvas, drawX, drawY, drawWidth, drawHeight);
+            } catch (e) {}
+        }
+        
+        // 底部备注
+        y += sigBoxHeight + 25;
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('— 本记录表由轨道作业车保养系统自动生成 —', pageWidth / 2, y);
+        
+        return canvas;
+    }
+</script>
+</body>
+</html>
